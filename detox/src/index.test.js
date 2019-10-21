@@ -71,6 +71,7 @@ describe('index', () => {
     await detox.init(schemes.validOneDeviceNoSession);
 
     expect(Detox).toHaveBeenCalledWith({
+      artifactsConfig: {},
       deviceConfig: schemes.validOneDeviceNoSession.configurations['ios.sim.release'],
       session: undefined,
     });
@@ -83,6 +84,7 @@ describe('index', () => {
     await detox.init(schemes.validTwoDevicesNoSession);
 
     expect(Detox).toHaveBeenCalledWith({
+      artifactsConfig: {},
       deviceConfig: schemes.validTwoDevicesNoSession.configurations['ios.sim.debug'],
       session: undefined,
     });
@@ -113,6 +115,7 @@ describe('index', () => {
     }
 
     expect(Detox).toHaveBeenCalledWith({
+      artifactsConfig: {},
       deviceConfig: expectedConfig,
       session: undefined,
     });

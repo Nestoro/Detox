@@ -107,7 +107,7 @@ describe('ArtifactsManager', () => {
         buildPathForTestArtifact: jest.fn(),
       };
 
-      artifactsManager = new proxy.ArtifactsManager(pathBuilder);
+      artifactsManager = new proxy.ArtifactsManager({ pathBuilder });
       artifactsManager.registerArtifactPlugins({ testPluginFactory });
     });
 

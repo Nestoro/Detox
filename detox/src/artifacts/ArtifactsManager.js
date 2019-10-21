@@ -7,9 +7,10 @@ const argparse = require('../utils/argparse');
 const ArtifactPathBuilder = require('./utils/ArtifactPathBuilder');
 
 class ArtifactsManager {
-  constructor(pathBuilder) {
+  constructor({ pathBuilder, ...pluginConfigs } = {}) {
     this.onTerminate = _.once(this.onTerminate.bind(this));
 
+    this._pluginConfigs = pluginConfigs;
     this._idlePromise = Promise.resolve();
     this._idleCallbackRequests = [];
     this._activeArtifacts = [];
@@ -19,9 +20,11 @@ class ArtifactsManager {
     });
   }
 
-  _instantitateArtifactPlugin(pluginFactory) {
+  _instantitateArtifactPlugin(pluginFactory, pluginConfig) {
     const artifactsApi = {
       plugin: null,
+
+      config: { ...pluginConfig },
 
       preparePathForArtifact: async (artifactName, testSummary) => {
         const artifactPath = this._pathBuilder.buildPathForTestArtifact(artifactName, testSummary);
@@ -68,10 +71,10 @@ class ArtifactsManager {
   }
 
   registerArtifactPlugins(artifactPluginFactoriesMap = {}) {
-    const artifactPluginsFactories = Object.values(artifactPluginFactoriesMap);
+    const artifactPluginsFactories = Object.entries(artifactPluginFactoriesMap);
 
-    this._artifactPlugins = artifactPluginsFactories.map((factory) => {
-      return this._instantitateArtifactPlugin(factory);
+    this._artifactPlugins = artifactPluginsFactories.map(([key, factory]) => {
+      return this._instantitateArtifactPlugin(factory, this._pluginConfigs[key]);
     });
   }
 
