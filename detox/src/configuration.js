@@ -1,3 +1,5 @@
+const _ = require('lodash');
+const path = require('path');
 const DetoxConfigError = require('./errors/DetoxConfigError');
 const uuid = require('./utils/uuid');
 const argparse = require('./utils/argparse');
