@@ -50,6 +50,16 @@ describe('ArtifactsManager', () => {
     it('should correctly terminate itself (without errors)', async () => {
       await artifactsManager.onTerminate();
     });
+
+    describe('with { pathBuilder } string', () => {
+      it('should require that module as pathBuilder', () => {
+        const fakePathBuilderPath = path.join(__dirname, '__mocks__/FakePathBuilder');
+        jest.mock(fakePathBuilderPath);
+
+        artifactsManager = new proxy.ArtifactsManager({ pathBuilder: fakePathBuilderPath });
+        expect(artifactsManager._pathBuilder).toBe(require(fakePathBuilderPath));
+      });
+    })
   });
 
   describe('when plugin factory is registered', () => {
@@ -103,11 +113,10 @@ describe('ArtifactsManager', () => {
         });
       };
 
-      pathBuilder = {
-        buildPathForTestArtifact: jest.fn(),
-      };
+      const fakePathBuilderPath = path.join(__dirname, '__mocks__/FakePathBuilder');
+      jest.mock(fakePathBuilderPath);
 
-      artifactsManager = new proxy.ArtifactsManager({ pathBuilder });
+      artifactsManager = new proxy.ArtifactsManager({ pathBuilder: fakePathBuilderPath });
       artifactsManager.registerArtifactPlugins({ testPluginFactory });
     });
 
