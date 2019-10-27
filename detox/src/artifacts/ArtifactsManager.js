@@ -116,7 +116,11 @@ class ArtifactsManager {
     try {
       await this._artifactPlugins[plugin][methodName](...args);
     } catch (e) {
-      this._unhandledPluginExceptionHandler(e, { plugin, methodName, args });
+      this._unhandledPluginExceptionHandler(e, {
+        plugin: { name: plugin },
+        methodName,
+        args
+      });
     }
   }
 

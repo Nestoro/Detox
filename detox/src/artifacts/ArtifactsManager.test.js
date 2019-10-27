@@ -109,7 +109,7 @@ describe('ArtifactsManager', () => {
       };
 
       artifactsManager = new proxy.ArtifactsManager(pathBuilder);
-      artifactsManager.registerArtifactPlugins({ testPluginFactory });
+      artifactsManager.registerArtifactPlugins({ testPlugin: testPluginFactory });
     });
 
     describe('.preparePathForArtifact()', () => {
@@ -263,8 +263,8 @@ describe('ArtifactsManager', () => {
         }));
 
         itShouldCatchErrorsOnPhase('onInvoke', () => ({
-          plugin: 'testPluginFactory',
-          method: 'disable',
+          plugin: 'testPlugin',
+          methodName: 'onInvoke',
           args: ['message'],
         }));
 
@@ -409,12 +409,12 @@ describe('ArtifactsManager', () => {
     describe('onInvoke', () => {
       it('should invoke a method in a specific plugin', async () => {
         const invokeArguments = {
-          plugin: 'testPluginFactory',
-          method: 'someMethod',
+          plugin: 'testPlugin',
+          methodName: 'someMethod',
           args: [1, 2, 3],
         };
 
-        await artifactsManager.onUserAction(invokeArguments);
+        await artifactsManager.onInvoke(invokeArguments);
         expect(testPlugin.someMethod).toHaveBeenCalledWith(1, 2, 3);
       });
     });

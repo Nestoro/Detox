@@ -82,7 +82,7 @@ class TwoSnapshotsPerTestPlugin extends ArtifactPlugin {
   _startSavingSnapshots() {
     const {testSummary} = this.context;
 
-    for (const [name, snapshot] of Object.values(this.snapshots)) {
+    for (const [name, snapshot] of Object.entries(this.snapshots)) {
       delete this.snapshots[name];
 
       if (snapshot) {
@@ -96,7 +96,7 @@ class TwoSnapshotsPerTestPlugin extends ArtifactPlugin {
   }
 
   _startDiscardingSnapshots() {
-    for (const [name, snapshot] of Object.values(this.snapshots)) {
+    for (const [name, snapshot] of Object.entries(this.snapshots)) {
       delete this.snapshots[name];
 
       if (snapshot) {
