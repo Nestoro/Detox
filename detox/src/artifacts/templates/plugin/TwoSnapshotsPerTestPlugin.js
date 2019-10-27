@@ -1,4 +1,5 @@
 const ArtifactPlugin = require('./ArtifactPlugin');
+const FileArtifact = require('../artifact/FileArtifact');
 
 /***
  * @abstract
@@ -10,6 +11,9 @@ class TwoSnapshotsPerTestPlugin extends ArtifactPlugin {
   }
 
   async onBeforeEach(testSummary) {
+    this.context.testSummary = null;
+    this._startSavingSnapshots();
+
     await super.onBeforeEach(testSummary);
     await this._takeAutomaticSnapshot('beforeEach');
   }
@@ -19,13 +23,15 @@ class TwoSnapshotsPerTestPlugin extends ArtifactPlugin {
 
     if (this.shouldKeepArtifactOfTest(testSummary)) {
       await this._takeAutomaticSnapshot('afterEach');
-      this.startSavingSnapshot('beforeEach');
-      this.startSavingSnapshot('afterEach');
+      this._startSavingSnapshots();
     } else {
-      this.startDiscardingSnapshot('beforeEach');
+      this._startDiscardingSnapshots();
     }
+  }
 
-    this._clearAutomaticSnapshotReferences();
+  async onAfterAll() {
+    await super.onAfterAll();
+    this._startSavingSnapshots();
   }
 
   /***
@@ -44,58 +50,62 @@ class TwoSnapshotsPerTestPlugin extends ArtifactPlugin {
    */
   createTestArtifact() {}
 
-  _clearAutomaticSnapshotReferences() {
-    delete this.snapshots.beforeEach;
-    delete this.snapshots.afterEach;
+  /***
+   * @public
+   * @param {string} name - Artifact name
+   * @param {string|Artifact} snapshot - An artifact or temporary file path
+   * @returns {void}
+   */
+  registerSnapshot(name, snapshot) {
+    const artifact = typeof snapshot === 'string'
+      ? new FileArtifact(snapshot)
+      : snapshot;
+
+    this.snapshots[name] = artifact;
+    this.api.trackArtifact(artifact);
   }
 
   async _takeAutomaticSnapshot(name) {
     if (this.enabled) {
-      await this.takeSnapshot(name);
+      await this._takeSnapshot(name);
     }
   }
 
-  /***
-   * @protected
-   */
-  async takeSnapshot(name) {
-    const snapshot = this.snapshots[name] = this.createTestArtifact();
+  async _takeSnapshot(name) {
+    const snapshot = this.createTestArtifact();
     await snapshot.start();
     await snapshot.stop();
 
-    this.api.trackArtifact(snapshot);
+    this.registerSnapshot(name, snapshot);
   }
 
-  /***
-   * @protected
-   */
-  startSavingSnapshot(name) {
-    const snapshot = this.snapshots[name];
-    if (!snapshot) {
-      return;
-    }
-
+  _startSavingSnapshots() {
     const {testSummary} = this.context;
-    this.api.requestIdleCallback(async () => {
-      const snapshotArtifactPath = await this.preparePathForSnapshot(testSummary, name);
-      await snapshot.save(snapshotArtifactPath);
-      this.api.untrackArtifact(snapshot);
-    });
+
+    for (const [name, snapshot] of Object.values(this.snapshots)) {
+      delete this.snapshots[name];
+
+      if (snapshot) {
+        this.api.requestIdleCallback(async () => {
+          const snapshotArtifactPath = await this.preparePathForSnapshot(testSummary, name);
+          await snapshot.save(snapshotArtifactPath);
+          this.api.untrackArtifact(snapshot);
+        });
+      }
+    }
   }
 
-  /***
-   * @protected
-   */
-  startDiscardingSnapshot(name) {
-    const snapshot = this.snapshots[name];
-    if (!snapshot) {
-      return;
-    }
+  _startDiscardingSnapshots() {
+    for (const [name, snapshot] of Object.values(this.snapshots)) {
+      delete this.snapshots[name];
 
-    this.api.requestIdleCallback(async () => {
-      await snapshot.discard();
-      this.api.untrackArtifact(snapshot);
-    });
+      if (snapshot) {
+        this.api.requestIdleCallback(async () => {
+          await snapshot.discard();
+          this.api.untrackArtifact(snapshot);
+        });
+      }
+    }
   }
 }
 

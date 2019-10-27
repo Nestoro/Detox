@@ -94,12 +94,13 @@ describe('ArtifactsManager', () => {
           onBeforeTerminateApp: jest.fn(),
           onBeforeLaunchApp: jest.fn(),
           onLaunchApp: jest.fn(),
-          onUserAction: jest.fn(),
+          onInvoke: jest.fn(),
           onBeforeAll: jest.fn(),
           onBeforeEach: jest.fn(),
           onAfterEach: jest.fn(),
           onAfterAll: jest.fn(),
           onTerminate: jest.fn(),
+          someMethod: jest.fn(),
         });
       };
 
@@ -261,11 +262,10 @@ describe('ArtifactsManager', () => {
           deviceId: 'testDeviceId',
         }));
 
-        itShouldCatchErrorsOnPhase('onUserAction', () => ({
-          type: 'takeScreenshot',
-          options: {
-            name: 'open app',
-          }
+        itShouldCatchErrorsOnPhase('onInvoke', () => ({
+          plugin: 'testPluginFactory',
+          method: 'disable',
+          args: ['message'],
         }));
 
         itShouldCatchErrorsOnPhase('onBeforeShutdownDevice', () => ({
@@ -406,17 +406,16 @@ describe('ArtifactsManager', () => {
       });
     });
 
-    describe('onUserAction', () => {
-      it('should call onUserAction in plugins', async () => {
-        const actionInfo = {
-          type: 'takeScreenshot',
-          options: {
-            name: 'open app',
-          },
+    describe('onInvoke', () => {
+      it('should invoke a method in a specific plugin', async () => {
+        const invokeArguments = {
+          plugin: 'testPluginFactory',
+          method: 'someMethod',
+          args: [1, 2, 3],
         };
 
-        await artifactsManager.onUserAction(actionInfo);
-        expect(testPlugin.onUserAction).toHaveBeenCalledWith(actionInfo);
+        await artifactsManager.onUserAction(invokeArguments);
+        expect(testPlugin.someMethod).toHaveBeenCalledWith(1, 2, 3);
       });
     });
 

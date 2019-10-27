@@ -16,6 +16,7 @@ const ADBLogcatPlugin = require('../../artifacts/log/android/ADBLogcatPlugin');
 const ADBScreencapPlugin = require('../../artifacts/screenshot/ADBScreencapPlugin');
 const ADBScreenrecorderPlugin = require('../../artifacts/video/ADBScreenrecorderPlugin');
 const AndroidDevicePathBuilder = require('../../artifacts/utils/AndroidDevicePathBuilder');
+const temporaryPath = require('../../artifacts/utils/temporaryPath');
 const sleep = require('../../utils/sleep');
 const retry = require('../../utils/retry');
 const { interruptProcess, spawnAndLog } = require('../../utils/exec');
@@ -31,13 +32,14 @@ class AndroidDriver extends DeviceDriverBase {
 
     this.adb = new ADB();
     this.aapt = new AAPT();
+    this.devicePathBuilder = new AndroidDevicePathBuilder();
 
     this.pendingUrl = undefined;
   }
 
   declareArtifactPlugins() {
     const adb = this.adb;
-    const devicePathBuilder = new AndroidDevicePathBuilder();
+    const devicePathBuilder = this.devicePathBuilder;
 
     return {
       log: (api) => new ADBLogcatPlugin({ api, adb, devicePathBuilder }),
@@ -161,6 +163,25 @@ class AndroidDriver extends DeviceDriverBase {
   async disableSynchronization() {
     const call = EspressoDetoxApi.setSynchronization(false);
     await this.invocationManager.execute(call);
+  }
+
+  async takeScreenshot(deviceId, screenshotName) {
+    const adb = this.adb;
+
+    const pathOnDevice = this._devicePathBuilder.buildTemporaryArtifactPath('.png');
+    await adb.screencap(deviceId, pathOnDevice);
+
+    const tempPath = temporaryPath.for.png();
+    await adb.pull(deviceId, pathOnDevice, tempPath);
+    await adb.rm(deviceId, pathOnDevice);
+
+    await this.emitter.emit('invoke', {
+      plugin: 'screenshot',
+      methodName: 'registerSnapshot',
+      args: [screenshotName, tempPath],
+    });
+
+    return tempPath;
   }
 
   async setOrientation(deviceId, orientation) {

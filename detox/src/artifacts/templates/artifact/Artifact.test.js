@@ -442,6 +442,11 @@ describe(Artifact.name, () => {
       expect(artifact.name).toBe('SomeName');
     });
 
+    it('should add arbitrary properties', () => {
+      artifact = new Artifact({ self() { return this; } });
+      expect(artifact.self()).toBe(artifact);
+    });
+
     it('should replace protected .doStart() with arg.start()', async () => {
       const start = jest.fn();
       artifact = new Artifact({ start });

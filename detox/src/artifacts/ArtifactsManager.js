@@ -13,7 +13,7 @@ class ArtifactsManager {
     this._idlePromise = Promise.resolve();
     this._idleCallbackRequests = [];
     this._activeArtifacts = [];
-    this._artifactPlugins = [];
+    this._artifactPlugins = {};
     this._pathBuilder = pathBuilder || new ArtifactPathBuilder({
       artifactsRootDir: argparse.getArgValue('artifacts-location') || 'artifacts',
     });
@@ -68,11 +68,9 @@ class ArtifactsManager {
   }
 
   registerArtifactPlugins(artifactPluginFactoriesMap = {}) {
-    const artifactPluginsFactories = Object.values(artifactPluginFactoriesMap);
-
-    this._artifactPlugins = artifactPluginsFactories.map((factory) => {
-      return this._instantitateArtifactPlugin(factory);
-    });
+    for (const [key, factory] of Object.entries(artifactPluginFactoriesMap)) {
+      this._artifactPlugins[key] = this._instantitateArtifactPlugin(factory);
+    }
   }
 
   subscribeToDeviceEvents(deviceEmitter) {
@@ -83,7 +81,7 @@ class ArtifactsManager {
     deviceEmitter.on('launchApp', this.onLaunchApp.bind(this));
     deviceEmitter.on('beforeUninstallApp', this.onBeforeUninstallApp.bind(this));
     deviceEmitter.on('beforeTerminateApp', this.onBeforeTerminateApp.bind(this));
-    deviceEmitter.on('userAction', this.onUserAction.bind(this));
+    deviceEmitter.on('invoke', this.onInvoke.bind(this));
   }
 
   async onBootDevice(deviceInfo) {
@@ -114,8 +112,12 @@ class ArtifactsManager {
     await this._callPlugins('plain', 'onLaunchApp', appLaunchInfo);
   }
 
-  async onUserAction(actionInfo) {
-    await this._callPlugins('plain', 'onUserAction', actionInfo);
+  async onInvoke({ plugin, methodName, args }) {
+    try {
+      await this._artifactPlugins[plugin][methodName](...args);
+    } catch (e) {
+      this._unhandledPluginExceptionHandler(e, { plugin, methodName, args });
+    }
   }
 
   async onBeforeAll() {
@@ -136,7 +138,7 @@ class ArtifactsManager {
   }
 
   async onTerminate() {
-    if (this._artifactPlugins.length === 0) {
+    if (_.isEmpty(this._artifactPlugins)) {
       return;
     }
 
@@ -150,7 +152,10 @@ class ArtifactsManager {
 
     await Promise.all(this._activeArtifacts.map(artifact => artifact.discard()));
     await this._idlePromise;
-    this._artifactPlugins.splice(0);
+
+    for (const key of Object.keys(this._activeArtifacts)) {
+      delete this._artifactPlugins[key];
+    }
 
     log.info({ event: 'TERMINATE_SUCCESS' }, 'done.');
   }
@@ -172,10 +177,11 @@ class ArtifactsManager {
 
   _groupPlugins(strategy) {
     if (strategy === 'plain') {
-      return [this._artifactPlugins];
+      return [_.values(this._artifactPlugins)];
     }
 
     const pluginsByPriority = _.chain(this._artifactPlugins)
+      .values()
       .groupBy('priority')
       .entries()
       .sortBy(([priority]) => Number(priority))

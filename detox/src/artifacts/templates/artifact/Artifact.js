@@ -9,19 +9,26 @@ class Artifact {
     this._discardPromise = null;
 
     if (template) {
-      this._name = template.name || '';
+      const { name, start, stop, save, discard, ...other } = template;
 
-      if (typeof template.start === 'function') {
-        this.doStart = template.start.bind(template);
+      Object.assign(this, other);
+
+      this._name = name || '';
+
+      if (typeof start === 'function') {
+        this.doStart = start.bind(template);
       }
-      if (typeof template.stop === 'function') {
-        this.doStop = template.stop.bind(template);
+
+      if (typeof stop === 'function') {
+        this.doStop = stop.bind(template);
       }
-      if (typeof template.save === 'function') {
-        this.doSave = template.save.bind(template);
+
+      if (typeof save === 'function') {
+        this.doSave = save.bind(template);
       }
-      if (typeof template.discard === 'function') {
-        this.doDiscard = template.discard.bind(template);
+
+      if (typeof discard === 'function') {
+        this.doDiscard = discard.bind(template);
       }
     }
   }
