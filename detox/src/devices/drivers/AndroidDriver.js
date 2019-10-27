@@ -38,8 +38,7 @@ class AndroidDriver extends DeviceDriverBase {
   }
 
   declareArtifactPlugins() {
-    const adb = this.adb;
-    const devicePathBuilder = this.devicePathBuilder;
+    const { adb, devicePathBuilder } = this;
 
     return {
       log: (api) => new ADBLogcatPlugin({ api, adb, devicePathBuilder }),
