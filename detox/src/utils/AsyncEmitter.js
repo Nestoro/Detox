@@ -17,13 +17,13 @@ class AsyncEmitter {
   async emit(eventName, eventObj) {
     const eventListeners = this._listeners[eventName];
     if (_.isEmpty(eventListeners)) {
-      return [];
+      return;
     }
 
     const fire = async (fn) => fn(eventObj);
-    const onError = (error) => { this._onError({ error, eventName, eventObj }); }
+    const onError = (error) => this._onError({ error, eventName, eventObj });
 
-    return await Promise.all(eventListeners.map(fn => fire(fn).catch(onError)));
+    await Promise.all(eventListeners.map(fn => fire(fn).catch(onError)));
   }
 
   off(eventName, callback) {
